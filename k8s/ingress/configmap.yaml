@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: caddy-config
+  namespace: default
+data:
+  Caddyfile: |
+    # Local development configuration (HTTP only)
+    # For cloud deployment with HTTPS, replace "http://" with your domain name
+    # Example: "example.com {"
+    # Caddy will automatically provision TLS certificates via Let's Encrypt
+    http:// {
+        # Route /api/* requests to backend service (strips /api prefix)
+        handle_path /api/* {
+            reverse_proxy backend-service:3001
+        }
+        
+        # Route /es/* requests to Elasticsearch service (strips /es prefix)
+        handle_path /es/* {
+            reverse_proxy elasticsearch-service:9200
+        }
+        
+        # Route all other requests to frontend service
+        reverse_proxy frontend-service:3000
+    }
+

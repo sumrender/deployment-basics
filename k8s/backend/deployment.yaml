@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: todo-backend:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3001
+          name: http
+        env:
+        - name: MONGODB_URI
+          valueFrom:
+            configMapKeyRef:
+              name: todo-app-config
+              key: MONGODB_URI
+        - name: ELASTICSEARCH_NODE
+          valueFrom:
+            configMapKeyRef:
+              name: todo-app-config
+              key: ELASTICSEARCH_NODE
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: todo-app-config
+              key: PORT
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: todo-app-config
+              key: NODE_ENV
+        - name: CORS_ORIGIN
+          valueFrom:
+            configMapKeyRef:
+              name: todo-app-config
+              key: CORS_ORIGIN
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3001
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 5
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 5
+

@@ -23,12 +23,12 @@ class ConfigService {
     this.config = {
       // API Configuration
       api: {
-        url: this._getString('NEXT_PUBLIC_API_URL', 'http://localhost:3001'),
+        url: '/api',
       },
 
       // Elasticsearch Configuration
       elasticsearch: {
-        url: this._getString('NEXT_PUBLIC_ELASTICSEARCH_URL', 'http://localhost:9200'),
+        url: '/es',
         indexName: this._getString('NEXT_PUBLIC_ELASTICSEARCH_INDEX', 'todos'),
       },
 
@@ -86,18 +86,26 @@ class ConfigService {
   private _validate(): void {
     const errors: string[] = [];
 
-    // Validate API URL format
-    try {
-      new URL(this.config.api.url);
-    } catch {
-      errors.push(`Invalid API URL format: ${this.config.api.url}`);
+    // Validate API URL format (allow relative paths starting with /)
+    if (this.config.api.url.startsWith('/')) {
+      // Relative path - valid for routing through ingress
+    } else {
+      try {
+        new URL(this.config.api.url);
+      } catch {
+        errors.push(`Invalid API URL format: ${this.config.api.url}`);
+      }
     }
 
-    // Validate Elasticsearch URL format
-    try {
-      new URL(this.config.elasticsearch.url);
-    } catch {
-      errors.push(`Invalid Elasticsearch URL format: ${this.config.elasticsearch.url}`);
+    // Validate Elasticsearch URL format (allow relative paths starting with /)
+    if (this.config.elasticsearch.url.startsWith('/')) {
+      // Relative path - valid for routing through ingress
+    } else {
+      try {
+        new URL(this.config.elasticsearch.url);
+      } catch {
+        errors.push(`Invalid Elasticsearch URL format: ${this.config.elasticsearch.url}`);
+      }
     }
 
     // Validate node environment
