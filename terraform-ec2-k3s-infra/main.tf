@@ -118,12 +118,12 @@ BOOTSTRAP_SCRIPT="/tmp/bootstrap-k3s-ec2.sh"
 
 # Convert repo URL into "owner/repo" for raw.githubusercontent.com
 REPO_PATH="${var.github_repo_url}"
-REPO_PATH="${REPO_PATH#https://github.com/}"
-REPO_PATH="${REPO_PATH#http://github.com/}"
-REPO_PATH="${REPO_PATH#git@github.com:}"
-REPO_PATH="${REPO_PATH%.git}"
+REPO_PATH="$${REPO_PATH#https://github.com/}"
+REPO_PATH="$${REPO_PATH#http://github.com/}"
+REPO_PATH="$${REPO_PATH#git@github.com:}"
+REPO_PATH="$${REPO_PATH%.git}"
 
-RAW_BOOTSTRAP_URL="https://raw.githubusercontent.com/${REPO_PATH}/${var.github_repo_branch}/terraform-ec2-k3s-infra/bootstrap-k3s-ec2.sh"
+RAW_BOOTSTRAP_URL="https://raw.githubusercontent.com/$${REPO_PATH}/${var.github_repo_branch}/terraform-ec2-k3s-infra/bootstrap-k3s-ec2.sh"
 curl -fsSL -o "$BOOTSTRAP_SCRIPT" "$RAW_BOOTSTRAP_URL"
 chmod +x "$BOOTSTRAP_SCRIPT"
 
