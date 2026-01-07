@@ -1,5 +1,21 @@
 # Kubernetes Deployment Guide
 
+## Quickstart
+```
+kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/mongo/
+kubectl apply -f k8s/elasticsearch/
+kubectl apply -f k8s/backend/
+kubectl apply -f k8s/frontend/
+kubectl apply -f k8s/ingress/
+kubectl port-forward service/caddy-service 4444:80
+```
+
+Delete everything
+```
+kubectl delete all --all
+```
+
 This directory contains Kubernetes manifests to deploy the Todo application.
 
 ## Namespace
