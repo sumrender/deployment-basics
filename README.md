@@ -11,15 +11,22 @@ A full-stack todo application built with Express.js backend, Next.js frontend, M
 
 ```mermaid
 graph TB
-    Browser[Browser] --> NextJS[Next.js Frontend]
-    NextJS --> Express[Express Backend API]
-    NextJS --> ES[(Elasticsearch)]
-    Express --> MongoDB[(MongoDB)]
-    Express --> ES
-    DockerCompose[Docker Compose] --> MongoDB
-    DockerCompose --> ES
-    DockerCompose --> Express
-    DockerCompose --> NextJS
+    Browser["Browser"] --> CaddyLB["Service: caddy-service (LoadBalancer)"]
+
+    subgraph K8s["Kubernetes Cluster"]
+        CaddyLB --> Caddy["Deployment: caddy"]
+        Caddy --> FrontendSvc["Service: frontend-service"]
+        Caddy --> BackendSvc["Service: backend-service"]
+        Caddy --> ESSvc["Service: elasticsearch-service"]
+
+        FrontendSvc --> Frontend["Deployment: frontend (Next.js)"]
+        BackendSvc --> Backend["Deployment: backend (Express API)"]
+        ESSvc --> ES["StatefulSet: elasticsearch"]
+
+        Backend --> MongoSvc["Service: mongo-service (headless)"]
+        MongoSvc --> MongoDB["StatefulSet: mongo"]
+        Backend --> ES
+    end
 ```
 
 ## Features
