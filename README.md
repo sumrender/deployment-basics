@@ -140,7 +140,7 @@ npm run dev
 - `GET /es` - Search todos in Elasticsearch (optional, frontend uses direct ES connection)
   - Query: `?q=searchterm`
 
-- `GET /health` - Health check endpoint
+- `GET /` - Health check endpoint
 
 ### Direct Elasticsearch Access
 

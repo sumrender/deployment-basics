@@ -15,7 +15,7 @@ router.post('/es', indexTodo);
 router.get('/es', searchTodos);
 
 // Health check
-router.get('/health', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     let mongoStatus = 'disconnected';
     let esStatus = 'disconnected';
