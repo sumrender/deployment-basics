@@ -14,6 +14,9 @@ spec:
       labels:
         app: elasticsearch
     spec:
+      securityContext:
+        fsGroup: 1000
+
       initContainers:
       - name: sysctl
         image: busybox:1.35
@@ -37,7 +40,9 @@ spec:
         - name: xpack.security.enabled
           value: "false"
         - name: ES_JAVA_OPTS
-          value: "-Xms512m -Xmx512m"
+          value: "-Xms256m -Xmx256m -XX:-UseContainerSupport"
+        - name: JAVA_TOOL_OPTIONS
+          value: "-XX:-UseContainerSupport"
         - name: http.cors.enabled
           value: "true"
         - name: http.cors.allow-origin
@@ -62,15 +67,15 @@ spec:
           httpGet:
             path: /_cluster/health
             port: 9200
-          initialDelaySeconds: 30
-          periodSeconds: 10
+          initialDelaySeconds: 90
+          periodSeconds: 15
           timeoutSeconds: 5
           failureThreshold: 5
         readinessProbe:
           httpGet:
             path: /_cluster/health
             port: 9200
-          initialDelaySeconds: 10
+          initialDelaySeconds: 60
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 5
