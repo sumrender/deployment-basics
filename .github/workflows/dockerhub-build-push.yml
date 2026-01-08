@@ -92,3 +92,81 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  update_staging_manifests:
+    needs: [build_backend, build_frontend, changes]
+    if: always() && (needs.build_backend.result == 'success' || needs.build_frontend.result == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout deployment-basics-configuration repo
+        uses: actions/checkout@v4
+        with:
+          repository: sumrender/deployment-basics-configuration
+          token: ${{ secrets.DEPLOY_REPO_TOKEN }}
+          path: deployment-config
+
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Update backend deployment image
+        if: needs.build_backend.result == 'success'
+        working-directory: deployment-config
+        run: |
+          BACKEND_IMAGE="sumrenders/todo-backend:${{ github.sha }}"
+          yq eval '(.spec.template.spec.containers[] | select(.name == "backend") | .image) = "'"$BACKEND_IMAGE"'"' -i k8s/staging/backend/deployment.yaml
+          
+          # Verify the update was successful
+          UPDATED_IMAGE=$(yq eval '.spec.template.spec.containers[] | select(.name == "backend") | .image' k8s/staging/backend/deployment.yaml)
+          if [ "$UPDATED_IMAGE" != "$BACKEND_IMAGE" ]; then
+            echo "Error: Failed to update backend image. Expected: $BACKEND_IMAGE, Got: $UPDATED_IMAGE"
+            exit 1
+          fi
+          echo "Successfully updated backend image to: $UPDATED_IMAGE"
+
+      - name: Update frontend deployment image
+        if: needs.build_frontend.result == 'success'
+        working-directory: deployment-config
+        run: |
+          FRONTEND_IMAGE="sumrenders/todo-frontend:${{ github.sha }}"
+          yq eval '(.spec.template.spec.containers[] | select(.name == "frontend") | .image) = "'"$FRONTEND_IMAGE"'"' -i k8s/staging/frontend/deployment.yaml
+          
+          # Verify the update was successful
+          UPDATED_IMAGE=$(yq eval '.spec.template.spec.containers[] | select(.name == "frontend") | .image' k8s/staging/frontend/deployment.yaml)
+          if [ "$UPDATED_IMAGE" != "$FRONTEND_IMAGE" ]; then
+            echo "Error: Failed to update frontend image. Expected: $FRONTEND_IMAGE, Got: $UPDATED_IMAGE"
+            exit 1
+          fi
+          echo "Successfully updated frontend image to: $UPDATED_IMAGE"
+
+      - name: Determine updated images
+        id: updated_images
+        run: |
+          UPDATED_IMAGES=""
+          if [ "${{ needs.build_backend.result }}" == "success" ]; then
+            UPDATED_IMAGES="${UPDATED_IMAGES}- Backend: \`sumrenders/todo-backend:${{ github.sha }}\`\n"
+          fi
+          if [ "${{ needs.build_frontend.result }}" == "success" ]; then
+            UPDATED_IMAGES="${UPDATED_IMAGES}- Frontend: \`sumrenders/todo-frontend:${{ github.sha }}\`\n"
+          fi
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          echo "Automated image bump for staging environment." >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "**New image tags:**" >> $GITHUB_OUTPUT
+          echo -e "$UPDATED_IMAGES" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "Triggered by commit: ${{ github.sha }} in ${{ github.repository }}" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.DEPLOY_REPO_TOKEN }}
+          path: deployment-config
+          commit-message: "chore(staging): bump images to ${{ github.sha }}"
+          title: "chore(staging): bump images to ${{ github.sha }}"
+          body: ${{ steps.updated_images.outputs.body }}
+          branch: bump-staging-images-${{ github.sha }}
+          delete-branch: true
+          labels: autobump
+
