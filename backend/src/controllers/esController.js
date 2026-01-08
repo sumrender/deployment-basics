@@ -36,6 +36,12 @@ export const getIndex = async () => {
       await client.indices.create({
         index: indexName,
         body: {
+          // This app runs Elasticsearch as a single-node cluster in k8s.
+          // Default replicas=1 is unnecessary; keep it at 0.
+          settings: {
+            number_of_shards: 1,
+            number_of_replicas: 0,
+          },
           mappings: {
             properties: {
               id: { type: 'keyword' },

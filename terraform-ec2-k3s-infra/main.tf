@@ -141,6 +141,11 @@ resource "aws_instance" "k3s_cluster" {
   subnet_id                   = data.aws_subnet.default.id
   associate_public_ip_address = true
 
+  root_block_device {
+    volume_size = 30
+    volume_type = "gp3"
+  }
+
   user_data = local.user_data
 
   tags = {
