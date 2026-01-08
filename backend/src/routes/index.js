@@ -39,7 +39,7 @@ router.get('/', async (req, res) => {
     }
 
     res.status(200).json({
-      status: 'chalra haiii',
+      status: 'ok',
       mongodb: mongoStatus,
       elasticsearch: esStatus,
     });
