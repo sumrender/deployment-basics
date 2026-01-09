@@ -10,23 +10,35 @@ A full-stack todo application built with Express.js backend, Next.js frontend, M
 - **Search**: Elasticsearch for indexing and direct search from frontend
 
 ```mermaid
-graph TB
-    Browser["Browser"] --> CaddyLB["Service: caddy-service (LoadBalancer)"]
+flowchart TB
 
-    subgraph K8s["Kubernetes Cluster"]
-        CaddyLB --> Caddy["Deployment: caddy"]
-        Caddy --> FrontendSvc["Service: frontend-service"]
-        Caddy --> BackendSvc["Service: backend-service"]
-        Caddy --> ESSvc["Service: elasticsearch-service"]
+User["User / Browser"]
+Edge["Edge Gateway (Caddy)"]
 
-        FrontendSvc --> Frontend["Deployment: frontend (Next.js)"]
-        BackendSvc --> Backend["Deployment: backend (Express API)"]
-        ESSvc --> ES["StatefulSet: elasticsearch"]
+subgraph App["Application Platform"]
+    Frontend["Web Frontend (Next.js)"]
+    Backend["API Service (Express)"]
+end
 
-        Backend --> MongoSvc["Service: mongo-service (headless)"]
-        MongoSvc --> MongoDB["StatefulSet: mongo"]
-        Backend --> ES
-    end
+subgraph Data["Data Platform"]
+    Search["Search Engine (Elasticsearch)"]
+    DB["Primary Database (MongoDB)"]
+end
+
+%% User entry
+User --> Edge
+Edge --> Frontend
+
+%% Frontend traffic MUST go back through Caddy
+Frontend --> Edge
+
+%% Caddy routes to internal services
+Edge --> Backend
+Edge --> Search
+
+%% Backend internal dependencies
+Backend --> DB
+Backend --> Search
 ```
 
 ## Features
