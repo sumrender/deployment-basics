@@ -51,7 +51,8 @@ spec:
       name: mongo-data
     spec:
       accessModes: [ "ReadWriteOnce" ]
+      storageClassName: ebs-gp3
       resources:
         requests:
-          storage: 5Gi
+          storage: 10Gi
 

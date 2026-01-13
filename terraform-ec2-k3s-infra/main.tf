@@ -136,10 +136,14 @@ EOF
 resource "aws_instance" "k3s_cluster" {
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.instance_type
+  iam_instance_profile = aws_iam_instance_profile.ebs_csi_profile.name
   key_name                    = aws_key_pair.ec2_key_pair.key_name
   vpc_security_group_ids      = [aws_security_group.ec2_sg.id]
   subnet_id                   = data.aws_subnet.default.id
   associate_public_ip_address = true
+  depends_on = [
+    aws_iam_instance_profile.ebs_csi_profile
+  ]
 
   root_block_device {
     volume_size = 30
@@ -153,3 +157,46 @@ resource "aws_instance" "k3s_cluster" {
   }
 }
 
+resource "aws_iam_role" "ebs_csi_role" {
+  name = "ec2-ebs-csi-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = "ec2.amazonaws.com"
+      }
+      Action = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ebs_csi_policy" {
+  role       = aws_iam_role.ebs_csi_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+}
+
+resource "aws_iam_instance_profile" "ebs_csi_profile" {
+  name = "ec2-ebs-csi-profile"
+  role = aws_iam_role.ebs_csi_role.name
+}
+
+resource "aws_iam_role_policy" "ebs_csi_extra" {
+  name = "ebs-csi-extra"
+  role = aws_iam_role.ebs_csi_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ec2:CreateTags",
+          "ec2:DeleteTags"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}

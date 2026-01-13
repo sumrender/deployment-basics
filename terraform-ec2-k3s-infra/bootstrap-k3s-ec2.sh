@@ -219,6 +219,13 @@ persist_kubeconfig_env() {
     log_info "KUBECONFIG export added to ${profile_file}"
 }
 
+# Step 3d: Install AWS EBS CSI Driver
+install_ebs_csi_driver() {
+    log_info "Installing AWS EBS CSI Driver..."
+    k3s kubectl apply -k \
+      "github.com/kubernetes-sigs/aws-ebs-csi-driver/deploy/kubernetes/overlays/stable/?ref=release-1.29"
+}
+
 # Step 4: Clone repository
 clone_repo() {
     log_info "Cloning repository: $REPO_URL (branch: $REPO_BRANCH)"
@@ -261,6 +268,10 @@ apply_manifests() {
     fi
     
     # Apply in dependency order
+
+    log_info "Applying EBS StorageClass..."
+    k3s kubectl apply -f k8s/storage/ebs-sc.yaml
+
     log_info "Applying ConfigMap..."
     k3s kubectl apply -f k8s/configmap.yaml
     
@@ -394,6 +405,7 @@ main() {
     install_k3s
     configure_kubeconfig
     persist_kubeconfig_env
+    install_ebs_csi_driver
     clone_repo
     apply_manifests
     wait_for_pods

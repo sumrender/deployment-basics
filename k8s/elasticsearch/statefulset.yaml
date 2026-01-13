@@ -18,77 +18,90 @@ spec:
         fsGroup: 1000
 
       initContainers:
-      - name: sysctl
-        image: busybox:1.35
-        securityContext:
-          privileged: true
-        command:
-        - sh
-        - -c
-        - sysctl -w vm.max_map_count=262144
-      containers:
-      - name: elasticsearch
-        image: docker.elastic.co/elasticsearch/elasticsearch:8.11.3
-        ports:
-        - containerPort: 9200
-          name: http
-        - containerPort: 9300
-          name: transport
-        env:
-        - name: discovery.type
-          value: "single-node"
-        - name: xpack.security.enabled
-          value: "false"
-        - name: xpack.security.http.ssl.enabled
-          value: "false"
-        - name: xpack.security.transport.ssl.enabled
-          value: "false"
-        - name: xpack.ml.enabled
-          value: "false"
-        - name: ingest.geoip.downloader.enabled
-          value: "false"
-        - name: ES_JAVA_OPTS
-          value: "-Xms512m -Xmx512m"
-        - name: http.cors.enabled
-          value: "true"
-        - name: http.cors.allow-origin
-          value: "/.*/"
-        - name: http.cors.allow-methods
-          value: "GET,POST,PUT,DELETE,OPTIONS,HEAD"
-        - name: http.cors.allow-headers
-          value: "X-Requested-With,Content-Type,Content-Length,Authorization"
-        - name: http.cors.allow-credentials
-          value: "false"
-        volumeMounts:
-        - name: es-data
-          mountPath: /usr/share/elasticsearch/data
-        resources:
-          requests:
-            memory: "1Gi"
-            cpu: "500m"
-          limits:
-            memory: "1Gi"
-            cpu: "1000m"
-        livenessProbe:
-          httpGet:
-            path: /
-            port: 9200
-          initialDelaySeconds: 120
-          periodSeconds: 20
+        # Ensure Elasticsearch can write to the EBS-backed data volume (fixes non-root permission issues)
+        - name: fix-permissions
+          image: busybox:1.35
+          command:
+            - sh
+            - -c
+            - chown -R 1000:1000 /usr/share/elasticsearch/data
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: es-data
+              mountPath: /usr/share/elasticsearch/data
 
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 9200
-          initialDelaySeconds: 90
-          periodSeconds: 10
+        - name: sysctl
+          image: busybox:1.35
+          securityContext:
+            privileged: true
+          command:
+            - sh
+            - -c
+            - sysctl -w vm.max_map_count=262144
+      containers:
+        - name: elasticsearch
+          image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
+          ports:
+            - containerPort: 9200
+              name: http
+            - containerPort: 9300
+              name: transport
+          env:
+            - name: discovery.type
+              value: "single-node"
+            - name: xpack.security.enabled
+              value: "false"
+            - name: xpack.security.http.ssl.enabled
+              value: "false"
+            - name: xpack.security.transport.ssl.enabled
+              value: "false"
+            - name: xpack.ml.enabled
+              value: "false"
+            - name: ingest.geoip.downloader.enabled
+              value: "false"
+            - name: ES_JAVA_OPTS
+              value: "-Xms512m -Xmx512m"
+            - name: http.cors.enabled
+              value: "true"
+            - name: http.cors.allow-origin
+              value: "/.*/"
+            - name: http.cors.allow-methods
+              value: "GET,POST,PUT,DELETE,OPTIONS,HEAD"
+            - name: http.cors.allow-headers
+              value: "X-Requested-With,Content-Type,Content-Length,Authorization"
+            - name: http.cors.allow-credentials
+              value: "false"
+          volumeMounts:
+            - name: es-data
+              mountPath: /usr/share/elasticsearch/data
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 9200
+            initialDelaySeconds: 120
+            periodSeconds: 20
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 9200
+            initialDelaySeconds: 90
+            periodSeconds: 10
 
   volumeClaimTemplates:
-  - metadata:
-      name: es-data
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      resources:
-        requests:
-          storage: 10Gi
-
+    - metadata:
+        name: es-data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: ebs-gp3
+        resources:
+          requests:
+            storage: 20Gi
