@@ -18,17 +18,49 @@ if (parentPort) {
 }
 
 /**
+ * Performs intensive CPU operations combining math, string, array, and object manipulations
+ */
+function performIntensiveOps() {
+  // Math operations
+  Math.sqrt(Math.random() * 1000000);
+  Math.sin(Math.random() * Math.PI);
+  Math.cos(Math.random() * Math.PI);
+  Math.tan(Math.random() * Math.PI);
+  Math.log(Math.random() * 10000 + 1);
+  Math.exp(Math.random() * 10);
+  Math.pow(Math.random() * 100, 2);
+  
+  // String operations (very intensive)
+  let str = '';
+  for (let i = 0; i < 100; i++) {
+    str += Math.random().toString(36);
+  }
+  str.match(/[a-z]+/g);
+  
+  // Array operations
+  const arr = Array.from({ length: 50 }, () => Math.random());
+  arr.sort();
+  arr.reverse();
+  arr.map(x => x * 2).filter(x => x > 0.5).reduce((a, b) => a + b, 0);
+  
+  // Object operations
+  const obj = JSON.stringify({ data: arr, timestamp: Date.now(), str });
+  JSON.parse(obj);
+}
+
+/**
  * CPU burn function - busy loop for specified duration
  */
-function burnCPU(durationMs) {
+function burnCPU(durationMs, intensityMultiplier = 2) {
   const start = Date.now();
   let iterations = 0;
   
   while (Date.now() - start < durationMs) {
-    // Perform some CPU-intensive work
-    Math.sqrt(Math.random() * 1000000);
-    Math.sin(Math.random() * Math.PI);
-    Math.cos(Math.random() * Math.PI);
+    // Run intensive operations N times per iteration
+    for (let i = 0; i < intensityMultiplier; i++) {
+      performIntensiveOps();
+    }
+    
     iterations++;
   }
   
@@ -65,7 +97,7 @@ function allocateMemory(targetMb) {
  * Main worker loop
  */
 function startHog(config) {
-  const { memoryMb, cpuSliceMs, maxMinutes } = config;
+  const { memoryMb, cpuSliceMs, maxMinutes, intensityMultiplier = 2 } = config;
   
   console.log('[Worker] Starting resource hog with config:', config);
   
@@ -91,8 +123,8 @@ function startHog(config) {
       return;
     }
     
-    // Burn CPU for the specified slice
-    burnCPU(cpuSliceMs);
+    // Burn CPU for the specified slice with intensity multiplier
+    burnCPU(cpuSliceMs, intensityMultiplier);
     
     // Yield control back to event loop
     setImmediate(cpuLoop);

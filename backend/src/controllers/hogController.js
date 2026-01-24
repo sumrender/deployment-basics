@@ -19,8 +19,9 @@ function parseConfig(query) {
   const memoryMb = Math.max(0, Math.min(2048, parseInt(query.memoryMb || '256', 10) || 256));
   const cpuSliceMs = Math.max(1, Math.min(200, parseInt(query.cpuSliceMs || '20', 10) || 20));
   const maxMinutes = Math.max(1, Math.min(120, parseInt(query.maxMinutes || '10', 10) || 10));
+  const intensityMultiplier = Math.max(1, Math.min(100, parseInt(query.intensityMultiplier || '2', 10) || 2));
   
-  return { memoryMb, cpuSliceMs, maxMinutes };
+  return { memoryMb, cpuSliceMs, maxMinutes, intensityMultiplier };
 }
 
 /**
@@ -28,14 +29,14 @@ function parseConfig(query) {
  */
 export const startHog = async (req, res) => {
   try {
-    // Check if already running
+    // Stop existing worker if running (allows dynamic config updates)
     if (hogState.worker) {
-      return res.status(409).json({
-        status: 'already_running',
-        config: hogState.config,
-        startedAt: hogState.startedAt,
-        message: 'Resource hog is already running. Use POST /clear-hog-resources to stop it first.',
-      });
+      console.log('🔄 Stopping existing worker to start with new configuration');
+      hogState.worker.postMessage({ type: 'stop' });
+      hogState.worker.terminate();
+      hogState.worker = null;
+      hogState.config = null;
+      hogState.startedAt = null;
     }
     
     // Parse configuration from query params
